@@ -2,7 +2,7 @@
 
 ## Current state
 
-Score: 4/10 (was 1/10) — tested pure-Kotlin domain core and honest CI; the
+Score: 5/10 (was 4/10) — tested pure-Kotlin domain core and honest CI; the
 Compose UI is still a placeholder and the Android build is unverified locally.
 
 ## Backlog
@@ -16,7 +16,7 @@ Compose UI is still a placeholder and the Android build is unverified locally.
 - P2: Compose UI tests (`androidx.compose.ui:ui-test-junit4`) for the main flow.
 - P2: Pin `distributionSha256Sum` in `gradle-wrapper.properties`.
 
-## Done in this pass
+## Done in this pass (pass 1)
 
 - Added `core/` (included Gradle build) with the app's domain logic and 5 unit tests.
 - Committed the Gradle wrapper (8.10.2).
@@ -25,3 +25,10 @@ Compose UI is still a placeholder and the Android build is unverified locally.
   target 17; added `com.google.android.material` for the manifest theme.
 - CI: removed `|| true`; separate `core` and `android` jobs.
 - README now states what is verified and what is not.
+
+## Done in this pass (pass 2)
+
+- Fixed de-duplication: a source repeating its own headline ("Morning briefing" every day) was dropped after the first day; title duplicates now require a *different* source within 48 h, as the doc comment promised.
+- Fixed filtering: muting "ai" hid every article containing "said"; Latin terms now match at word starts, Thai/CJK terms (no spaces) still match as substrings.
+- 7 more edge-case tests (12 total). Verified with `./gradlew -p core test --offline`.
+- Still not verified locally: the Compose `app/` (no Android SDK; dl.google.com is blocked here).
