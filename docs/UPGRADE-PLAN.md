@@ -32,3 +32,10 @@ Compose UI is still a placeholder and the Android build is unverified locally.
 - Fixed filtering: muting "ai" hid every article containing "said"; Latin terms now match at word starts, Thai/CJK terms (no spaces) still match as substrings.
 - 7 more edge-case tests (12 total). Verified with `./gradlew -p core test --offline`.
 - Still not verified locally: the Compose `app/` (no Android SDK; dl.google.com is blocked here).
+
+## Done in this pass (pass 3)
+
+- Fixed de-duplication of Thai headlines: the title key stripped combining marks (`\p{M}`), so "เสือ" (tiger) and "เสื่อ" (mat) collapsed to the same key and a different story was dropped.
+- Fixed de-duplication of articles without a URL: every blank-URL article after the first was dropped as a "duplicate".
+- Keyword/mute matching ignores zero-width characters (U+200B/U+2060/BOM): a zero-width-only keyword hid every article.
+- 3 regression tests (15 total), verified with `./gradlew -p core test --offline`.

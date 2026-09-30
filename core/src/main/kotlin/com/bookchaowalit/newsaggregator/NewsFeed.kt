@@ -44,7 +44,14 @@ object NewsFeed {
         return "$scheme://$host$port$path" + if (query.isEmpty()) "" else "?$query"
     }
 
-    private fun titleKey(title: String) = title.lowercase().replace(Regex("[^\\p{L}\\p{N}]+"), " ").trim()
+    // \p{M} keeps Thai vowel/tone marks: "เสือ" (tiger) and "เสื่อ" (mat) are different words.
+    private fun titleKey(title: String) =
+        stripInvisible(title).lowercase().replace(Regex("[^\\p{L}\\p{M}\\p{N}]+"), " ").trim()
+
+    private val INVISIBLE = Regex("[\\u200B\\u200C\\u200D\\u2060\\uFEFF\\u00AD]")
+
+    /** Removes zero-width characters (U+200B, U+2060, BOM, ...) that keyboards and pastes leave behind. */
+    fun stripInvisible(text: String): String = text.replace(INVISIBLE, "")
 
     /** Two copies of the same headline further apart than this are separate stories (e.g. daily columns). */
     val TITLE_DUPLICATE_WINDOW: Duration = Duration.ofHours(48)
@@ -66,9 +73,10 @@ object NewsFeed {
                 val sameStory = t.isNotEmpty() && kept[t].orEmpty().any { k ->
                     k.source != a.source && Duration.between(k.publishedAt, a.publishedAt) <= TITLE_DUPLICATE_WINDOW
                 }
-                val fresh = u !in seenUrls && !sameStory
+                // Articles without a URL cannot be URL-duplicates of each other.
+                val fresh = (u.isBlank() || u !in seenUrls) && !sameStory
                 if (fresh) {
-                    seenUrls += u
+                    if (u.isNotBlank()) seenUrls += u
                     if (t.isNotEmpty()) kept.getOrPut(t) { mutableListOf() } += a
                 }
                 fresh
@@ -83,9 +91,9 @@ object NewsFeed {
      * fall back to a plain substring match.
      */
     fun matchesTerm(text: String, term: String): Boolean {
-        val t = term.trim().lowercase()
+        val t = stripInvisible(term).trim().lowercase()
         if (t.isEmpty()) return false
-        val haystack = text.lowercase()
+        val haystack = stripInvisible(text).lowercase()
         if (t.any { it.code in 0x0E00..0x0E7F || Character.isIdeographic(it.code) || it.code in 0x3040..0x30FF || it.code in 0xAC00..0xD7AF }) {
             return t in haystack
         }
@@ -99,8 +107,8 @@ object NewsFeed {
     }
 
     fun filter(articles: List<Article>, q: FeedQuery): List<Article> {
-        val kw = q.keyword.trim()
-        val muted = q.mutedKeywords.map { it.trim() }.filter { it.isNotEmpty() }
+        val kw = stripInvisible(q.keyword).trim()
+        val muted = q.mutedKeywords.map { stripInvisible(it).trim() }.filter { it.isNotEmpty() }
         return articles.filter { a ->
             val text = a.title + " " + a.summary
             (q.sources.isEmpty() || a.source in q.sources) &&
